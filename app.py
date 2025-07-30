@@ -39,15 +39,14 @@ class Tank:
         self.kills = 0
         
     def move(self, dx: float, dy: float):
-        """Move tank by given delta"""
+        """Move tank by given delta, clamping to arena boundaries instead of ignoring out-of-range movement."""
+        # Compute tentative new position
         new_x = self.x + dx
         new_y = self.y + dy
-        
-        # Keep tank within arena bounds
-        if TANK_SIZE/2 <= new_x <= ARENA_WIDTH - TANK_SIZE/2:
-            self.x = new_x
-        if TANK_SIZE/2 <= new_y <= ARENA_HEIGHT - TANK_SIZE/2:
-            self.y = new_y
+
+        # Clamp coordinates so the tank stays fully inside the arena
+        self.x = min(max(new_x, TANK_SIZE / 2), ARENA_WIDTH - TANK_SIZE / 2)
+        self.y = min(max(new_y, TANK_SIZE / 2), ARENA_HEIGHT - TANK_SIZE / 2)
     
     def rotate(self, angle_delta: float):
         """Rotate tank by given angle"""
