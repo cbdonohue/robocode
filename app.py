@@ -445,9 +445,28 @@ def start_game():
     """Start the game"""
     if len(game_state.tanks) < 2:
         return jsonify({'error': 'Need at least 2 tanks to start'})
-    
+    # Allow optional configuration of rounds and time per round
+    data = request.get_json(silent=True) or {}
+
+    # Validate and apply custom settings if provided
+    max_rounds = data.get('max_rounds')
+    round_time = data.get('round_time')
+
+    try:
+        if max_rounds is not None:
+            max_rounds = int(max_rounds)
+            if max_rounds > 0:
+                game_state.max_rounds = max_rounds
+        if round_time is not None:
+            round_time = int(round_time)
+            if round_time > 0:
+                game_state.round_time = round_time
+    except ValueError:
+        # Ignore invalid values and keep defaults
+        pass
+
     game_state.start_game()
-    return jsonify({'success': True})
+    return jsonify({'success': True, 'max_rounds': game_state.max_rounds, 'round_time': game_state.round_time})
 
 @app.route('/api/reset-game', methods=['POST'])
 def reset_game():

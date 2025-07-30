@@ -447,7 +447,19 @@
                 </div>
             </div>
 
-            <div style="text-align: center; margin-top: 20px;">
+            <!-- Game configuration inputs -->
+            <div style="display:flex; justify-content:center; gap:15px; flex-wrap:wrap; margin-top:20px;">
+                <div class="form-group" style="min-width:120px;">
+                    <label for="maxRounds" style="font-size:0.85em;">Max Rounds</label>
+                    <input type="number" id="maxRounds" min="1" value="10" style="text-align:center;">
+                </div>
+                <div class="form-group" style="min-width:140px;">
+                    <label for="roundTime" style="font-size:0.85em;">Round Time (s)</label>
+                    <input type="number" id="roundTime" min="10" value="60" style="text-align:center;">
+                </div>
+            </div>
+
+            <div style="text-align: center; margin-top: 10px;">
                 <button class="btn btn-success" onclick="startGame()">Start Battle</button>
                 <button class="btn btn-danger" onclick="resetGame()">Reset Game</button>
             </div>
@@ -572,16 +584,28 @@ def think(game_state):
 
         // Start game
         async function startGame() {
+            const maxRoundsInput = document.getElementById('maxRounds');
+            const roundTimeInput = document.getElementById('roundTime');
+
+            const payload = {
+                max_rounds: parseInt(maxRoundsInput.value) || 10,
+                round_time: parseInt(roundTimeInput.value) || 60
+            };
+
             try {
                 const response = await fetch('/api/start-game', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                    }
+                    },
+                    body: JSON.stringify(payload)
                 });
 
                 const result = await response.json();
                 if (result.success) {
+                    // Update any UI defaults with the confirmed game settings
+                    maxRoundsInput.value = result.max_rounds;
+                    roundTimeInput.value = result.round_time;
                     startGameLoop();
                 } else {
                     alert(result.error || 'Failed to start game');
