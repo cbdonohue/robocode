@@ -8,6 +8,8 @@ import os
 import sys
 from typing import Dict, List, Tuple, Optional
 import json
+import io
+import contextlib
 
 app = Flask(__name__)
 
@@ -271,10 +273,24 @@ class GameState:
             # Call tank brain if available
             if tank.brain_module and hasattr(tank.brain_module, 'think'):
                 try:
-                    action = tank.brain_module.think(game_state)
+                    # Capture any output produced by the user's brain code for debugging purposes
+                    buf_out, buf_err = io.StringIO(), io.StringIO()
+                    with contextlib.redirect_stdout(buf_out), contextlib.redirect_stderr(buf_err):
+                        action = tank.brain_module.think(game_state)
+
+                    captured_out = buf_out.getvalue()
+                    captured_err = buf_err.getvalue()
+
+                    if captured_out:
+                        tank._add_debug_event('stdout', text=captured_out)
+                    if captured_err:
+                        tank._add_debug_event('stderr', text=captured_err)
+
                     self._execute_tank_action(tank, action)
                 except Exception as e:
-                    print(f"Error in tank {tank_name} brain: {e}")
+                    error_msg = str(e)
+                    print(f"Error in tank {tank_name} brain: {error_msg}")
+                    tank._add_debug_event('error', error=error_msg)
     
     def _get_game_state_for_ai(self, tank_name: str) -> dict:
         """Get game state from perspective of specific tank"""
@@ -545,12 +561,18 @@ def think(game_state):
     my_tank = game_state['my_tank']
     other_tanks = game_state['other_tanks']
     
+    print(f"Chaser: My position ({my_tank['x']:.1f}, {my_tank['y']:.1f}), Health: {my_tank['health']}")
+    
     if not other_tanks:
+        print("Chaser: No enemies visible, moving forward")
         return {'move': 'forward'}
     
     # Find closest enemy
     closest = min(other_tanks, key=lambda t: 
         (t['x'] - my_tank['x'])**2 + (t['y'] - my_tank['y'])**2)
+    
+    distance = math.sqrt((closest['x'] - my_tank['x'])**2 + (closest['y'] - my_tank['y'])**2)
+    print(f"Chaser: Targeting {closest['name']} at distance {distance:.1f}")
     
     # Calculate angle to enemy
     dx = closest['x'] - my_tank['x']
@@ -567,9 +589,11 @@ def think(game_state):
     # Rotate towards enemy
     if abs(angle_diff) > 5:
         action['rotate'] = 1 if angle_diff > 0 else -1
+        print(f"Chaser: Rotating {'right' if angle_diff > 0 else 'left'} (diff: {angle_diff:.1f}°)")
     else:
         action['move'] = 'forward'
         action['shoot'] = True
+        print(f"Chaser: Moving forward and shooting!")
     
     return action
 ''',
@@ -582,6 +606,8 @@ def think(game_state):
     other_tanks = game_state['other_tanks']
     bullets = game_state['bullets']
     
+    print(f"Coward: My position ({my_tank['x']:.1f}, {my_tank['y']:.1f}), Health: {my_tank['health']}")
+    
     # Find closest enemy
     if other_tanks:
         closest = min(other_tanks, key=lambda t: 
@@ -589,9 +615,11 @@ def think(game_state):
         
         # Calculate distance to enemy
         distance = math.sqrt((closest['x'] - my_tank['x'])**2 + (closest['y'] - my_tank['y'])**2)
+        print(f"Coward: Closest enemy {closest['name']} at distance {distance:.1f}")
         
         # If too close, move away
         if distance < 100:
+            print(f"Coward: Enemy too close! Running away!")
             dx = my_tank['x'] - closest['x']
             dy = my_tank['y'] - closest['y']
             target_angle = math.degrees(math.atan2(dy, dx))
@@ -603,13 +631,17 @@ def think(game_state):
             action = {}
             if abs(angle_diff) > 5:
                 action['rotate'] = 1 if angle_diff > 0 else -1
+                print(f"Coward: Rotating {'right' if angle_diff > 0 else 'left'} to flee")
             else:
                 action['move'] = 'forward'
+                print(f"Coward: Moving forward to escape")
             
             return action
     
     # Default: move randomly
-    return {'move': 'forward', 'rotate': random.choice([-1, 0, 1])}
+    random_action = random.choice([-1, 0, 1])
+    print(f"Coward: No immediate threat, moving randomly (rotate: {random_action})")
+    return {'move': 'forward', 'rotate': random_action}
 ''',
         'aggressive_shooter': '''
 import math
@@ -618,12 +650,18 @@ def think(game_state):
     my_tank = game_state['my_tank']
     other_tanks = game_state['other_tanks']
     
+    print(f"Aggressive: My position ({my_tank['x']:.1f}, {my_tank['y']:.1f}), Health: {my_tank['health']}")
+    
     action = {'shoot': True}  # Always try to shoot
+    print("Aggressive: Firing at will!")
     
     if other_tanks:
         # Find closest enemy
         closest = min(other_tanks, key=lambda t: 
             (t['x'] - my_tank['x'])**2 + (t['y'] - my_tank['y'])**2)
+        
+        distance = math.sqrt((closest['x'] - my_tank['x'])**2 + (closest['y'] - my_tank['y'])**2)
+        print(f"Aggressive: Targeting {closest['name']} at distance {distance:.1f}")
         
         # Calculate angle to enemy
         dx = closest['x'] - my_tank['x']
@@ -638,8 +676,12 @@ def think(game_state):
         # Rotate towards enemy
         if abs(angle_diff) > 5:
             action['rotate'] = 1 if angle_diff > 0 else -1
+            print(f"Aggressive: Rotating {'right' if angle_diff > 0 else 'left'} to aim (diff: {angle_diff:.1f}°)")
         else:
             action['move'] = 'forward'
+            print(f"Aggressive: Moving forward while shooting!")
+    else:
+        print("Aggressive: No enemies visible, but still shooting!")
     
     return action
 '''
