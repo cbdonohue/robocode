@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tank Battle Arena</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            color: white;
+            overflow-x: hidden;
+        }
+
+        .header {
+            text-align: center;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .main-container {
+            display: flex;
+            gap: 20px;
+            padding: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .arena-section {
+            flex: 2;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .control-section {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .arena {
+            width: 800px;
+            height: 600px;
+            background: #2c3e50;
+            border: 3px solid #34495e;
+            border-radius: 10px;
+            position: relative;
+            margin: 0 auto;
+            overflow: hidden;
+        }
+
+        .tank {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            transform-origin: center;
+            transition: all 0.1s ease;
+        }
+
+        .tank-body {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            position: relative;
+        }
+
+        .tank-turret {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 8px;
+            height: 20px;
+            background: inherit;
+            border: 2px solid rgba(0, 0, 0, 0.3);
+            border-radius: 4px;
+            transform: translate(-50%, -50%);
+        }
+
+        .bullet {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: #f39c12;
+            border-radius: 50%;
+            box-shadow: 0 0 10px #f39c12;
+        }
+
+        .health-bar {
+            position: absolute;
+            width: 40px;
+            height: 4px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 2px;
+            overflow: hidden;
+            transform: translateX(-50%);
+        }
+
+        .health-fill {
+            height: 100%;
+            background: #27ae60;
+            transition: width 0.3s ease;
+        }
+
+        .tank-name {
+            position: absolute;
+            font-size: 10px;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+            transform: translateX(-50%);
+        }
+
+        .game-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+        }
+
+        .info-item {
+            text-align: center;
+        }
+
+        .info-label {
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+
+        .info-value {
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+
+        .tank-list {
+            margin-bottom: 20px;
+        }
+
+        .tank-item {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-left: 4px solid;
+        }
+
+        .tank-item.alive {
+            border-left-color: #27ae60;
+        }
+
+        .tank-item.dead {
+            border-left-color: #e74c3c;
+            opacity: 0.6;
+        }
+
+        .tank-stats {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9em;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 8px;
+            border: none;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
+        .form-group input::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.3s ease;
+            margin: 5px;
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-primary {
+            background: #3498db;
+        }
+
+        .btn-primary:hover {
+            background: #2980b9;
+        }
+
+        .btn-success {
+            background: #27ae60;
+        }
+
+        .btn-success:hover {
+            background: #229954;
+        }
+
+        .btn-danger {
+            background: #e74c3c;
+        }
+
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+
+        .code-editor {
+            width: 100%;
+            height: 200px;
+            background: #2c3e50;
+            color: #ecf0f1;
+            border: none;
+            border-radius: 5px;
+            padding: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            resize: vertical;
+        }
+
+        .sample-brains {
+            margin-top: 15px;
+        }
+
+        .sample-brain {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .sample-brain:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .sample-brain h4 {
+            margin-bottom: 5px;
+            color: #3498db;
+        }
+
+        .sample-brain p {
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+
+        .game-over {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            display: none;
+            z-index: 1000;
+        }
+
+        .winner {
+            color: #f39c12;
+            font-size: 1.5em;
+            margin-bottom: 20px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            font-style: italic;
+            opacity: 0.7;
+        }
+
+        @media (max-width: 1200px) {
+            .main-container {
+                flex-direction: column;
+            }
+            
+            .arena {
+                width: 100%;
+                max-width: 800px;
+                height: 400px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🤖 Tank Battle Arena</h1>
+        <p>Program your tanks with Python code and watch them battle!</p>
+    </div>
+
+    <div class="main-container">
+        <div class="arena-section">
+            <div class="game-info">
+                <div class="info-item">
+                    <div class="info-label">Round</div>
+                    <div class="info-value" id="roundInfo">-</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Time Left</div>
+                    <div class="info-value" id="timeLeft">-</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Tanks Alive</div>
+                    <div class="info-value" id="tanksAlive">-</div>
+                </div>
+            </div>
+
+            <div class="arena" id="arena">
+                <div class="loading" id="loadingMessage">
+                    Add tanks and start the battle!
+                </div>
+            </div>
+
+            <div style="text-align: center; margin-top: 20px;">
+                <button class="btn btn-success" onclick="startGame()">Start Battle</button>
+                <button class="btn btn-danger" onclick="resetGame()">Reset Game</button>
+            </div>
+        </div>
+
+        <div class="control-section">
+            <h3>🎯 Tank Management</h3>
+            
+            <div class="form-group">
+                <label for="tankName">Tank Name:</label>
+                <input type="text" id="tankName" placeholder="Enter tank name">
+            </div>
+
+            <div class="form-group">
+                <label for="tankColor">Tank Color:</label>
+                <input type="color" id="tankColor" value="#3498db">
+            </div>
+
+            <div class="form-group">
+                <label for="brainCode">Brain Code (Python):</label>
+                <textarea id="brainCode" class="code-editor" placeholder="import math
+import random
+
+def think(game_state):
+    # Your tank AI logic here
+    # Available actions: 'move': 'forward'/'backward', 'rotate': -1/0/1, 'shoot': True/False
+    return {'move': 'forward', 'shoot': True}"></textarea>
+            </div>
+
+            <button class="btn btn-primary" onclick="addTank()">Add Tank</button>
+
+            <div class="sample-brains">
+                <h4>🧠 Sample Brains</h4>
+                <div class="sample-brain" onclick="loadSampleBrain('simple_chaser')">
+                    <h4>Simple Chaser</h4>
+                    <p>Chases and shoots at the closest enemy</p>
+                </div>
+                <div class="sample-brain" onclick="loadSampleBrain('coward')">
+                    <h4>Coward</h4>
+                    <p>Runs away when enemies get too close</p>
+                </div>
+                <div class="sample-brain" onclick="loadSampleBrain('aggressive_shooter')">
+                    <h4>Aggressive Shooter</h4>
+                    <p>Always shoots and moves towards enemies</p>
+                </div>
+            </div>
+
+            <div class="tank-list" id="tankList">
+                <h4>🎖️ Active Tanks</h4>
+                <div id="tankItems"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="game-over" id="gameOver">
+        <h2>Battle Complete!</h2>
+        <div class="winner" id="winner"></div>
+        <button class="btn btn-primary" onclick="resetGame()">New Battle</button>
+    </div>
+
+    <script>
+        let gameInterval;
+        let sampleBrains = {};
+
+        // Initialize
+        window.addEventListener('load', function() {
+            loadSampleBrains();
+            updateGameState();
+        });
+
+        // Load sample brain code
+        async function loadSampleBrains() {
+            try {
+                const response = await fetch('/api/sample-brains');
+                sampleBrains = await response.json();
+            } catch (error) {
+                console.error('Error loading sample brains:', error);
+            }
+        }
+
+        // Load a sample brain
+        function loadSampleBrain(brainType) {
+            if (sampleBrains[brainType]) {
+                document.getElementById('brainCode').value = sampleBrains[brainType];
+            }
+        }
+
+        // Add tank
+        async function addTank() {
+            const name = document.getElementById('tankName').value || `Tank_${Date.now()}`;
+            const color = document.getElementById('tankColor').value;
+            const brainCode = document.getElementById('brainCode').value;
+
+            try {
+                const response = await fetch('/api/add-tank', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        name: name,
+                        color: color,
+                        brain_code: brainCode
+                    })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    updateTankList();
+                    document.getElementById('tankName').value = '';
+                    document.getElementById('brainCode').value = '';
+                }
+            } catch (error) {
+                console.error('Error adding tank:', error);
+            }
+        }
+
+        // Start game
+        async function startGame() {
+            try {
+                const response = await fetch('/api/start-game', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    startGameLoop();
+                } else {
+                    alert(result.error || 'Failed to start game');
+                }
+            } catch (error) {
+                console.error('Error starting game:', error);
+            }
+        }
+
+        // Reset game
+        async function resetGame() {
+            try {
+                await fetch('/api/reset-game', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+
+                if (gameInterval) {
+                    clearInterval(gameInterval);
+                }
+                
+                updateGameState();
+                updateTankList();
+                document.getElementById('gameOver').style.display = 'none';
+            } catch (error) {
+                console.error('Error resetting game:', error);
+            }
+        }
+
+        // Start game loop
+        function startGameLoop() {
+            if (gameInterval) {
+                clearInterval(gameInterval);
+            }
+            
+            gameInterval = setInterval(updateGameState, 50); // 20 FPS
+        }
+
+        // Update game state
+        async function updateGameState() {
+            try {
+                const response = await fetch('/api/game-state');
+                const gameState = await response.json();
+                
+                updateArena(gameState);
+                updateGameInfo(gameState);
+                updateTankList(gameState);
+                
+                if (!gameState.game_running && gameState.round_number > 0) {
+                    showGameOver(gameState);
+                }
+            } catch (error) {
+                console.error('Error updating game state:', error);
+            }
+        }
+
+        // Update arena display
+        function updateArena(gameState) {
+            const arena = document.getElementById('arena');
+            const loadingMessage = document.getElementById('loadingMessage');
+            
+            if (!gameState.game_running && gameState.tanks.length === 0) {
+                loadingMessage.style.display = 'block';
+                return;
+            }
+            
+            loadingMessage.style.display = 'none';
+            
+            // Clear arena
+            const existingElements = arena.querySelectorAll('.tank, .bullet, .health-bar, .tank-name');
+            existingElements.forEach(el => el.remove());
+            
+            // Draw tanks
+            gameState.tanks.forEach(tank => {
+                const tankElement = document.createElement('div');
+                tankElement.className = `tank ${tank.alive ? 'alive' : 'dead'}`;
+                tankElement.style.left = tank.x + 'px';
+                tankElement.style.top = tank.y + 'px';
+                tankElement.style.transform = `rotate(${tank.angle}deg)`;
+                tankElement.style.backgroundColor = tank.color;
+                
+                const tankBody = document.createElement('div');
+                tankBody.className = 'tank-body';
+                tankBody.style.backgroundColor = tank.color;
+                
+                const tankTurret = document.createElement('div');
+                tankTurret.className = 'tank-turret';
+                
+                tankElement.appendChild(tankBody);
+                tankElement.appendChild(tankTurret);
+                
+                arena.appendChild(tankElement);
+                
+                // Create health bar and name as separate elements (not children of tank)
+                const healthBar = document.createElement('div');
+                healthBar.className = 'health-bar';
+                healthBar.style.left = tank.x + 'px';
+                healthBar.style.top = (tank.y - 25) + 'px';
+                const healthFill = document.createElement('div');
+                healthFill.className = 'health-fill';
+                healthFill.style.width = (tank.health / 100 * 100) + '%';
+                healthBar.appendChild(healthFill);
+                
+                const tankName = document.createElement('div');
+                tankName.className = 'tank-name';
+                tankName.textContent = tank.name;
+                tankName.style.left = tank.x + 'px';
+                tankName.style.top = (tank.y - 40) + 'px';
+                
+                arena.appendChild(healthBar);
+                arena.appendChild(tankName);
+            });
+            
+            // Draw bullets
+            gameState.bullets.forEach(bullet => {
+                const bulletElement = document.createElement('div');
+                bulletElement.className = 'bullet';
+                bulletElement.style.left = bullet.x + 'px';
+                bulletElement.style.top = bullet.y + 'px';
+                arena.appendChild(bulletElement);
+            });
+        }
+
+        // Update game info
+        function updateGameInfo(gameState) {
+            document.getElementById('roundInfo').textContent = 
+                gameState.game_running ? `${gameState.round_number}/${gameState.max_rounds}` : '-';
+            
+            const timeLeft = Math.max(0, Math.ceil(gameState.time_remaining));
+            document.getElementById('timeLeft').textContent = 
+                gameState.game_running ? `${timeLeft}s` : '-';
+            
+            const aliveTanks = gameState.tanks.filter(t => t.alive).length;
+            document.getElementById('tanksAlive').textContent = aliveTanks;
+        }
+
+        // Update tank list
+        function updateTankList(gameState = null) {
+            const tankItems = document.getElementById('tankItems');
+            
+            if (!gameState) {
+                // Fetch current state
+                fetch('/api/game-state')
+                    .then(response => response.json())
+                    .then(state => updateTankList(state))
+                    .catch(error => console.error('Error fetching game state:', error));
+                return;
+            }
+            
+            tankItems.innerHTML = '';
+            
+            if (gameState.tanks.length === 0) {
+                tankItems.innerHTML = '<p style="opacity: 0.7;">No tanks added yet</p>';
+                return;
+            }
+            
+            gameState.tanks.forEach(tank => {
+                const tankItem = document.createElement('div');
+                tankItem.className = `tank-item ${tank.alive ? 'alive' : 'dead'}`;
+                
+                tankItem.innerHTML = `
+                    <div style="font-weight: bold; margin-bottom: 5px;">${tank.name}</div>
+                    <div class="tank-stats">
+                        <span>Health: ${tank.health}</span>
+                        <span>Score: ${tank.score}</span>
+                        <span>Kills: ${tank.kills}</span>
+                    </div>
+                `;
+                
+                tankItems.appendChild(tankItem);
+            });
+        }
+
+        // Show game over
+        function showGameOver(gameState) {
+            const gameOver = document.getElementById('gameOver');
+            const winner = document.getElementById('winner');
+            
+            // Find winner (tank with highest score)
+            const sortedTanks = gameState.tanks.sort((a, b) => b.score - a.score);
+            const winnerTank = sortedTanks[0];
+            
+            winner.textContent = `Winner: ${winnerTank.name} (Score: ${winnerTank.score})`;
+            gameOver.style.display = 'block';
+            
+            if (gameInterval) {
+                clearInterval(gameInterval);
+            }
+        }
+
+        // Handle Enter key in tank name input
+        document.getElementById('tankName').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                addTank();
+            }
+        });
+    </script>
+</body>
+</html> 
