@@ -49,3 +49,88 @@ def test_start_game_requires_two_tanks(client):
     res = client.post("/api/start-game")
     assert res.status_code == 200
     assert res.get_json().get("success") is True
+
+
+def test_add_tank_with_brain_code(client):
+    brain_code = """
+def think(game_state):
+    return {'move': 'forward'}
+"""
+    res = client.post("/api/add-tank", json={
+        "name": "SmartTank", 
+        "color": "#00f", 
+        "brain_code": brain_code
+    })
+    assert res.status_code == 200
+    assert res.get_json()["success"] is True
+
+
+def test_add_tank_without_name(client):
+    res = client.post("/api/add-tank", json={"color": "#f00"})
+    assert res.status_code == 200
+    data = res.get_json()
+    assert data["success"] is True
+    assert data["tank_name"].startswith("Tank_")
+
+
+def test_add_tank_without_color(client):
+    res = client.post("/api/add-tank", json={"name": "TestTank"})
+    assert res.status_code == 200
+    data = res.get_json()
+    assert data["success"] is True
+    
+    # Should have generated a random color
+    state = client.get("/api/game-state").get_json()
+    tank = next(t for t in state["tanks"] if t["name"] == "TestTank")
+    assert tank["color"].startswith("#")
+
+
+def test_reset_game_endpoint(client):
+    # Add some tanks first
+    client.post("/api/add-tank", json={"name": "Alpha", "color": "#f00"})
+    client.post("/api/add-tank", json={"name": "Beta", "color": "#0f0"})
+    
+    # Start the game
+    client.post("/api/start-game")
+    
+    # Check that game is running
+    state = client.get("/api/game-state").get_json()
+    assert state["game_running"] is True
+    
+    # Reset the game
+    res = client.post("/api/reset-game")
+    assert res.status_code == 200
+    assert res.get_json()["success"] is True
+    
+    # Check that game is no longer running
+    state = client.get("/api/game-state").get_json()
+    assert state["game_running"] is False
+    assert len(state["tanks"]) == 0
+
+
+def test_sample_brains_endpoint(client):
+    res = client.get("/api/sample-brains")
+    assert res.status_code == 200
+    data = res.get_json()
+    assert "simple_chaser" in data
+    assert "coward" in data
+
+
+def test_add_tank_invalid_json(client):
+    res = client.post("/api/add-tank", data="invalid json", content_type="application/json")
+    assert res.status_code == 400
+
+
+def test_start_game_no_tanks(client):
+    res = client.post("/api/start-game")
+    assert res.status_code == 200
+    data = res.get_json()
+    assert "error" in data
+    assert "Need at least 2 tanks" in data["error"]
+
+
+def test_index_route(client):
+    res = client.get("/")
+    assert res.status_code == 200
+    # Should return the HTML template
+    assert b"<!DOCTYPE html>" in res.data or b"<html" in res.data
