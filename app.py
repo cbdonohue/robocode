@@ -174,7 +174,13 @@ class GameState:
         # Limiting concurrency prevents one slow brain from freezing the whole game loop.
         self._executor = concurrent.futures.ThreadPoolExecutor(max_workers=8)
         # Maximum wall-clock time (seconds) allowed for a single brain think() call per frame.
-        self.think_timeout = 0.05  # 50 ms; tweak as necessary
+        # Allow the timeout to be configured via env var BRAIN_THINK_TIMEOUT (seconds)
+        env_timeout = os.getenv("BRAIN_THINK_TIMEOUT")
+        try:
+            self.think_timeout = float(env_timeout) if env_timeout else 0.05  # default 50 ms
+        except ValueError:
+            # Fallback to default if env var is not a valid float
+            self.think_timeout = 0.05  # 50 ms
  
     def _log(self, message: str):
         """Append an entry to the battle log with a timestamp (keeps last 200)."""
@@ -548,6 +554,7 @@ def start_game():
     # Validate and apply custom settings if provided
     max_rounds = data.get('max_rounds')
     round_time = data.get('round_time')
+    think_timeout = data.get('think_timeout')  # seconds
 
     try:
         if max_rounds is not None:
@@ -558,12 +565,16 @@ def start_game():
             round_time = int(round_time)
             if round_time > 0:
                 game_state.round_time = round_time
+        if think_timeout is not None:
+            think_timeout_val = float(think_timeout)
+            if think_timeout_val > 0:
+                game_state.think_timeout = think_timeout_val
     except ValueError:
         # Ignore invalid values and keep defaults
         pass
 
     game_state.start_game()
-    return jsonify({'success': True, 'max_rounds': game_state.max_rounds, 'round_time': game_state.round_time})
+    return jsonify({'success': True, 'max_rounds': game_state.max_rounds, 'round_time': game_state.round_time, 'think_timeout': game_state.think_timeout})
 
 @app.route('/api/reset-game', methods=['POST'])
 def reset_game():
