@@ -554,7 +554,7 @@ def think(game_state):
 
         // Add tank
         async function addTank() {
-            const name = document.getElementById('tankName').value || `Tank_${Date.now()}`;
+            const nameInput = document.getElementById('tankName').value.trim();
             const color = document.getElementById('tankColor').value;
             const brainCode = document.getElementById('brainCode').value;
 
@@ -565,7 +565,8 @@ def think(game_state):
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        name: name,
+                        // Include name only if the user provided one; otherwise let the server assign it
+                        ...(nameInput ? { name: nameInput } : {}),
                         color: color,
                         brain_code: brainCode
                     })
