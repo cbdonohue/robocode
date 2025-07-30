@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tank Battle Arena</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -344,6 +345,76 @@
                 max-width: 800px;
                 height: 400px;
             }
+        }
+        /* === Retro Cool Styling Overrides === */
+        :root {
+            --retro-bg: #141414;
+            --retro-primary: #39ff14;
+            --retro-secondary: #ff0080;
+            --retro-accent: #00d9ff;
+        }
+
+        body, .header h1, .btn {
+            font-family: 'Press Start 2P', monospace;
+        }
+
+        body {
+            background: radial-gradient(circle at center, #000 0%, #141414 70%);
+            color: var(--retro-primary);
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            background: repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.07) 0px, rgba(255, 255, 255, 0.07) 2px, transparent 2px, transparent 4px);
+            mix-blend-mode: overlay;
+            opacity: 0.2;
+            z-index: 9999;
+        }
+
+        .header {
+            background: none;
+        }
+
+        .header h1 {
+            color: var(--retro-secondary);
+            text-shadow: 0 0 8px var(--retro-secondary), 0 0 20px var(--retro-secondary);
+            animation: glow 1s infinite alternate;
+        }
+
+        @keyframes glow {
+            from {
+                text-shadow: 0 0 5px var(--retro-secondary);
+            }
+            to {
+                text-shadow: 0 0 20px var(--retro-secondary), 0 0 30px var(--retro-secondary);
+            }
+        }
+
+        .arena-section, .control-section {
+            background: rgba(0, 0, 0, 0.5);
+        }
+
+        .arena {
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid var(--retro-accent);
+            box-shadow: 0 0 10px var(--retro-accent);
+        }
+
+        .btn {
+            background: var(--retro-secondary);
+            border: 2px solid var(--retro-accent);
+            color: #fff;
+            text-shadow: 0 0 4px var(--retro-accent);
+        }
+
+        .btn:hover {
+            background: var(--retro-accent);
         }
     </style>
 </head>
