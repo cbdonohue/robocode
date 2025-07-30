@@ -21,6 +21,7 @@ TANK_SPEED = 2
 ROTATION_SPEED = 3
 MAX_HEALTH = 100
 DAMAGE_PER_HIT = 25
+DEBUG_LOG_LIMIT = 200  # Max debug events to keep per tank
 
 # List of safe phonetic names for default tank names
 PHONETIC_NAMES = [
@@ -62,7 +63,18 @@ class Tank:
         self.alive = True
         self.score = 0
         self.kills = 0
+        self.debug_log = []  # Store recent debug events for this tank
         
+    def _add_debug_event(self, event_type: str, **data):
+        """Internal: append a debug event keeping list capped"""
+        event = {'ts': time.time(), 'event': event_type}
+        if data:
+            event.update(data)
+        self.debug_log.append(event)
+        # Cap the log size
+        if len(self.debug_log) > DEBUG_LOG_LIMIT:
+            self.debug_log.pop(0)
+    
     def move(self, dx: float, dy: float):
         """Move tank by given delta"""
         new_x = self.x + dx
@@ -73,11 +85,13 @@ class Tank:
             self.x = new_x
         if TANK_SIZE/2 <= new_y <= ARENA_HEIGHT - TANK_SIZE/2:
             self.y = new_y
+        self._add_debug_event('move', new_x=self.x, new_y=self.y)
     
     def rotate(self, angle_delta: float):
         """Rotate tank by given angle"""
         self.angle += angle_delta
         self.angle %= 360
+        self._add_debug_event('rotate', angle=self.angle)
     
     def shoot(self):
         """Fire a bullet if cooldown allows"""
@@ -103,13 +117,16 @@ class Tank:
             
             self.bullets.append(bullet)
             self.last_shot_time = current_time
+            self._add_debug_event('shoot', bullet=bullet)
     
     def take_damage(self, damage: int):
         """Take damage and check if tank is destroyed"""
         self.health -= damage
+        self._add_debug_event('damage', new_health=self.health, damage=damage)
         if self.health <= 0:
             self.alive = False
             self.health = 0
+            self._add_debug_event('destroyed')
     
     def get_state(self) -> dict:
         """Get tank state for brain AI"""
@@ -133,7 +150,8 @@ class Tank:
             'health': self.health,
             'alive': self.alive,
             'score': self.score,
-            'kills': self.kills
+            'kills': self.kills,
+            'debug': self.debug_log[-100:]
         }
 
 class GameState:
@@ -628,6 +646,11 @@ def think(game_state):
     }
     
     return jsonify(samples)
+
+@app.route('/api/debug-data')
+def get_debug_data():
+    """Return recent debug logs for all tanks (capped)"""
+    return jsonify({name: tank.debug_log[-100:] for name, tank in game_state.tanks.items()})
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000) 
