@@ -74,29 +74,46 @@
 
         .tank {
             position: absolute;
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
+            width: 22px;
+            height: 26px;
+            border-radius: 3px; /* slight rounding for tank edges */
+            border: 2px solid rgba(0, 0, 0, 0.4); /* outline */
             transform-origin: center;
             transition: all 0.1s ease;
         }
 
         .tank-body {
+            position: absolute;
+            top: 4px; /* leave room for turret */
+            left: 0;
             width: 100%;
-            height: 100%;
-            border-radius: 50%;
-            position: relative;
+            height: 18px;
+            background: inherit;
+            border-radius: 3px;
         }
+
+        /* add treads using pseudo elements */
+        .tank-body::before,
+        .tank-body::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: rgba(0, 0, 0, 0.6);
+        }
+        .tank-body::before { top: -3px; }
+        .tank-body::after  { bottom: -3px; }
 
         .tank-turret {
             position: absolute;
-            top: 50%;
+            top: 0;
             left: 50%;
-            width: 8px;
-            height: 20px;
+            width: 4px;
+            height: 12px;
             background: inherit;
             border: 2px solid rgba(0, 0, 0, 0.3);
-            border-radius: 4px;
+            border-radius: 2px;
             transform: translate(-50%, -50%);
         }
 
@@ -686,8 +703,10 @@ def think(game_state):
             gameState.tanks.forEach(tank => {
                 const tankElement = document.createElement('div');
                 tankElement.className = `tank ${tank.alive ? 'alive' : 'dead'}`;
-                tankElement.style.left = (tank.x - 10) + 'px'; // center-align using TANK_SIZE/2
-                tankElement.style.top = (tank.y - 10) + 'px'; // center-align
+	            const HALF_TANK_WIDTH = 13; // 26px (22px body + 2px border each side)
+	            const HALF_TANK_HEIGHT = 15; // 30px (26px body + 2px border each side)
+	            tankElement.style.left = (tank.x - HALF_TANK_WIDTH) + 'px'; // center-align with updated size
+	            tankElement.style.top = (tank.y - HALF_TANK_HEIGHT) + 'px'; // center-align
                 tankElement.style.transform = `rotate(${tank.angle}deg)`;
                 tankElement.style.backgroundColor = tank.color;
                 
