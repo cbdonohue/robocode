@@ -345,6 +345,14 @@ class GameState:
             # Add bullets to global bullet list
             self.bullets.extend(tank.bullets)
             tank.bullets = []
+
+        # Taunt – allow tanks to send a battle-cry to the log
+        if 'taunt' in action:
+            taunt_msg = str(action['taunt'])
+            # Record in central battle log (capped inside _log)
+            self._log(f"{tank.name} shouts: {taunt_msg}")
+            # Also add to the tank's individual debug log for completeness
+            tank._add_debug_event('taunt', message=taunt_msg)
     
     def _check_collisions(self):
         """Check for bullet-tank collisions"""
