@@ -22,6 +22,31 @@ ROTATION_SPEED = 3
 MAX_HEALTH = 100
 DAMAGE_PER_HIT = 25
 
+# List of safe phonetic names for default tank names
+PHONETIC_NAMES = [
+    'Alpha', 'Bravo', 'Charlie', 'Delta', 'Echo', 'Foxtrot', 'Golf', 'Hotel',
+    'India', 'Juliet', 'Kilo', 'Lima', 'Mike', 'November', 'Oscar', 'Papa',
+    'Quebec', 'Romeo', 'Sierra', 'Tango', 'Uniform', 'Victor', 'Whiskey',
+    'Xray', 'Yankee', 'Zulu'
+]
+
+
+def _next_phonetic_name(existing_names):
+    """Return the first unused phonetic name. If all are taken, append a counter."""
+    # First attempt exact phonetic names
+    for n in PHONETIC_NAMES:
+        if n not in existing_names:
+            return n
+    # If we've run out, append a numeric suffix to ensure uniqueness
+    counter = 1
+    while True:
+        for base in PHONETIC_NAMES:
+            candidate = f"{base}_{counter}"
+            if candidate not in existing_names:
+                return candidate
+        counter += 1
+
+
 class Tank:
     def __init__(self, x: float, y: float, color: str, name: str, brain_module=None):
         self.x = x
@@ -444,7 +469,12 @@ def get_game_state():
 def add_tank():
     """Add a new tank to the game"""
     data = request.get_json()
-    name = data.get('name', f'Tank_{len(game_state.tanks)}')
+    raw_name = (data.get('name') or '').strip()
+    # Use provided name if non-empty, else pick the next safe phonetic name
+    if raw_name:
+        name = raw_name
+    else:
+        name = _next_phonetic_name(game_state.tanks.keys())
     color = data.get('color', f'#{random.randint(0, 0xFFFFFF):06x}')
     brain_code = data.get('brain_code')
     
