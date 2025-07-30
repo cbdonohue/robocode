@@ -422,6 +422,12 @@
     <div class="header">
         <h1>🤖 Tank Battle Arena</h1>
         <p>Program your tanks with Python code and watch them battle!</p>
+        <!-- Retro background music toggle & audio -->
+        <button id="musicToggle" class="btn" style="margin-top:10px;">🔊 Music: On</button>
+        <audio id="backgroundMusic" autoplay loop>
+            <source src="https://cdn.pixabay.com/download/audio/2022/03/23/audio_63ab0a9f51.mp3?filename=retro-arcade-game-loop-125505.mp3" type="audio/mpeg">
+            Your browser does not support the audio element.
+        </audio>
     </div>
 
     <div class="main-container">
@@ -823,6 +829,29 @@ def think(game_state):
             if (e.key === 'Enter') {
                 addTank();
             }
+        });
+
+        // === Retro Background Music Logic ===
+        const backgroundMusic = document.getElementById('backgroundMusic');
+        const musicToggle = document.getElementById('musicToggle');
+
+        if (backgroundMusic) {
+            backgroundMusic.volume = 0.25; // Start at a comfortable volume
+
+            // Some browsers block autoplay; play after first user interaction
+            const initPlay = () => {
+                backgroundMusic.play().catch(() => {/* Autoplay might still be blocked – that's okay */});
+                document.removeEventListener('click', initPlay);
+                document.removeEventListener('keydown', initPlay);
+            };
+            document.addEventListener('click', initPlay);
+            document.addEventListener('keydown', initPlay);
+        }
+
+        musicToggle.addEventListener('click', () => {
+            if (!backgroundMusic) return;
+            backgroundMusic.muted = !backgroundMusic.muted;
+            musicToggle.textContent = backgroundMusic.muted ? '🔇 Music: Off' : '🔊 Music: On';
         });
     </script>
 </body>
