@@ -12,6 +12,7 @@ from app import GameState, Tank, TANK_SIZE, TANK_SPEED, ROTATION_SPEED
 
 
 @pytest.fixture()
+
 def fresh_gamestate():
     """Return a fresh GameState instance for each test."""
     return GameState()
