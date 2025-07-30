@@ -24,6 +24,7 @@ ROTATION_SPEED = 3
 MAX_HEALTH = 100
 DAMAGE_PER_HIT = 25
 DEBUG_LOG_LIMIT = 200  # Max debug events to keep per tank
+TAUNT_DURATION = 2  # Seconds a taunt should remain visible
 
 # List of safe phonetic names for default tank names
 PHONETIC_NAMES = [
@@ -66,6 +67,9 @@ class Tank:
         self.score = 0
         self.kills = 0
         self.debug_log = []  # Store recent debug events for this tank
+        # Taunt handling
+        self.taunt: Optional[str] = None
+        self.taunt_timestamp: float = 0.0
         
     def _add_debug_event(self, event_type: str, **data):
         """Internal: append a debug event keeping list capped"""
@@ -153,7 +157,8 @@ class Tank:
             'alive': self.alive,
             'score': self.score,
             'kills': self.kills,
-            'debug': self.debug_log[-100:]
+            'debug': self.debug_log[-100:],
+            'taunt': self.taunt
         }
 
 class GameState:
@@ -219,6 +224,12 @@ class GameState:
         """Update game state for one frame"""
         if not self.game_running:
             return
+
+        # Clear expired taunts
+        now = time.time()
+        for t in self.tanks.values():
+            if t.taunt and now - t.taunt_timestamp > TAUNT_DURATION:
+                t.taunt = None
         
         # Update bullets
         self._update_bullets()
@@ -339,6 +350,14 @@ class GameState:
         if 'rotate' in action:
             tank.rotate(action['rotate'] * ROTATION_SPEED)
         
+        # Taunting
+        if 'taunt' in action and isinstance(action['taunt'], str):
+            taunt_text = action['taunt'][:50]  # Limit taunt length
+            tank.taunt = taunt_text
+            tank.taunt_timestamp = time.time()
+            tank._add_debug_event('taunt', text=taunt_text)
+            self._log(f"{tank.name} taunts: {taunt_text}")
+
         # Shooting
         if action.get('shoot', False):
             tank.shoot()
