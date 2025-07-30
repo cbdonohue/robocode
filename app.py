@@ -8,6 +8,8 @@ import os
 import sys
 from typing import Dict, List, Tuple, Optional
 import json
+import io
+import contextlib
 
 app = Flask(__name__)
 
@@ -271,10 +273,24 @@ class GameState:
             # Call tank brain if available
             if tank.brain_module and hasattr(tank.brain_module, 'think'):
                 try:
-                    action = tank.brain_module.think(game_state)
+                    # Capture any output produced by the user's brain code for debugging purposes
+                    buf_out, buf_err = io.StringIO(), io.StringIO()
+                    with contextlib.redirect_stdout(buf_out), contextlib.redirect_stderr(buf_err):
+                        action = tank.brain_module.think(game_state)
+
+                    captured_out = buf_out.getvalue()
+                    captured_err = buf_err.getvalue()
+
+                    if captured_out:
+                        tank._add_debug_event('stdout', text=captured_out)
+                    if captured_err:
+                        tank._add_debug_event('stderr', text=captured_err)
+
                     self._execute_tank_action(tank, action)
                 except Exception as e:
-                    print(f"Error in tank {tank_name} brain: {e}")
+                    error_msg = str(e)
+                    print(f"Error in tank {tank_name} brain: {error_msg}")
+                    tank._add_debug_event('error', error=error_msg)
     
     def _get_game_state_for_ai(self, tank_name: str) -> dict:
         """Get game state from perspective of specific tank"""
