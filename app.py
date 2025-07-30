@@ -3,6 +3,7 @@ import random
 import math
 import time
 import threading
+import concurrent.futures  # For per-tank execution timeouts
 import importlib.util
 import os
 import sys
@@ -169,6 +170,12 @@ class GameState:
         # Battle log entries (list of dicts with 'time' and 'message')
         self.logs = []
 
+        # Thread pool for executing user brain code with timeouts
+        # Limiting concurrency prevents one slow brain from freezing the whole game loop.
+        self._executor = concurrent.futures.ThreadPoolExecutor(max_workers=8)
+        # Maximum wall-clock time (seconds) allowed for a single brain think() call per frame.
+        self.think_timeout = 0.05  # 50 ms; tweak as necessary
+ 
     def _log(self, message: str):
         """Append an entry to the battle log with a timestamp (keeps last 200)."""
         timestamp = time.time()
@@ -273,13 +280,9 @@ class GameState:
             # Call tank brain if available
             if tank.brain_module and hasattr(tank.brain_module, 'think'):
                 try:
-                    # Capture any output produced by the user's brain code for debugging purposes
-                    buf_out, buf_err = io.StringIO(), io.StringIO()
-                    with contextlib.redirect_stdout(buf_out), contextlib.redirect_stderr(buf_err):
-                        action = tank.brain_module.think(game_state)
-
-                    captured_out = buf_out.getvalue()
-                    captured_err = buf_err.getvalue()
+                    # Submit brain execution to thread pool with a timeout
+                    future = self._executor.submit(self._run_brain_think, tank, game_state)
+                    action, captured_out, captured_err = future.result(timeout=self.think_timeout)
 
                     if captured_out:
                         tank._add_debug_event('stdout', text=captured_out)
@@ -287,10 +290,21 @@ class GameState:
                         tank._add_debug_event('stderr', text=captured_err)
 
                     self._execute_tank_action(tank, action)
+                except concurrent.futures.TimeoutError:
+                    # Brain took too long – skip this frame and log timeout
+                    self._log(f"Tank {tank_name} brain timed out for this frame.")
+                    tank._add_debug_event('timeout', message='think() took too long')
                 except Exception as e:
                     error_msg = str(e)
                     print(f"Error in tank {tank_name} brain: {error_msg}")
                     tank._add_debug_event('error', error=error_msg)
+
+    def _run_brain_think(self, tank: Tank, state: dict):
+        """Helper executed in a worker thread to run user think() and capture stdout/stderr."""
+        buf_out, buf_err = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(buf_out), contextlib.redirect_stderr(buf_err):
+            action = tank.brain_module.think(state)
+        return action, buf_out.getvalue(), buf_err.getvalue()
     
     def _get_game_state_for_ai(self, tank_name: str) -> dict:
         """Get game state from perspective of specific tank"""
