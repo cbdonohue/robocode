@@ -11,7 +11,7 @@ import json
 
 app = Flask(__name__)
 
-# Game configuration
+# Arena configuration
 ARENA_WIDTH = 800
 ARENA_HEIGHT = 600
 TANK_SIZE = 20
@@ -21,6 +21,9 @@ TANK_SPEED = 2
 ROTATION_SPEED = 3
 MAX_HEALTH = 100
 DAMAGE_PER_HIT = 25
+
+# Radar configuration (maximum distance a tank can detect enemies)
+RADAR_RANGE = 250  # units
 
 class Tank:
     def __init__(self, x: float, y: float, color: str, name: str, brain_module=None):
@@ -230,15 +233,23 @@ class GameState:
         """Get game state from perspective of specific tank"""
         tank = self.tanks[tank_name]
         
-        # Get other tanks
+        # Radar sweep – detect enemy tanks within RADAR_RANGE
         other_tanks = []
         for name, other_tank in self.tanks.items():
-            if name != tank_name and other_tank.alive:
+            if name == tank_name or not other_tank.alive:
+                continue
+
+            # Distance between my tank and the other tank
+            distance = math.sqrt((other_tank.x - tank.x) ** 2 + (other_tank.y - tank.y) ** 2)
+
+            # Only report tanks that are inside radar range
+            if distance <= RADAR_RANGE:
                 other_tanks.append({
                     'x': other_tank.x,
                     'y': other_tank.y,
                     'angle': other_tank.angle,
-                    'name': other_tank.name
+                    'name': other_tank.name,
+                    'distance': distance  # Helpful for AI logic
                 })
         
         return {
@@ -361,6 +372,7 @@ class GameState:
             'max_rounds': self.max_rounds,
             'round_time': self.round_time,
             'time_remaining': max(0, self.round_time - (time.time() - self.round_start_time)),
+            'radar_range': RADAR_RANGE,
             'logs': self.logs[-100:]
         }
 
@@ -463,106 +475,110 @@ def get_sample_brains():
         'simple_chaser': '''
 import math
 
+# A straightforward AI that chases the nearest visible enemy (as detected by radar)
+
 def think(game_state):
     my_tank = game_state['my_tank']
     other_tanks = game_state['other_tanks']
-    
+
+    # If radar sees nothing, move forward to explore
     if not other_tanks:
         return {'move': 'forward'}
-    
-    # Find closest enemy
-    closest = min(other_tanks, key=lambda t: 
-        (t['x'] - my_tank['x'])**2 + (t['y'] - my_tank['y'])**2)
-    
+
+    # Find the closest enemy using the distance provided by radar
+    closest = min(other_tanks, key=lambda t: t['distance'])
+
     # Calculate angle to enemy
     dx = closest['x'] - my_tank['x']
     dy = closest['y'] - my_tank['y']
     target_angle = math.degrees(math.atan2(dy, dx))
-    
+
     # Calculate angle difference
     angle_diff = (target_angle - my_tank['angle']) % 360
     if angle_diff > 180:
         angle_diff -= 360
-    
+
     action = {}
-    
+
     # Rotate towards enemy
     if abs(angle_diff) > 5:
         action['rotate'] = 1 if angle_diff > 0 else -1
     else:
+        # Once aligned, move and shoot
         action['move'] = 'forward'
         action['shoot'] = True
-    
+
     return action
 ''',
         'coward': '''
 import math
 import random
 
+# A defensive AI that keeps its distance from nearby enemies detected by radar
+
 def think(game_state):
     my_tank = game_state['my_tank']
     other_tanks = game_state['other_tanks']
     bullets = game_state['bullets']
-    
-    # Find closest enemy
+
+    # Identify the closest detected enemy (if any)
     if other_tanks:
-        closest = min(other_tanks, key=lambda t: 
-            (t['x'] - my_tank['x'])**2 + (t['y'] - my_tank['y'])**2)
-        
-        # Calculate distance to enemy
-        distance = math.sqrt((closest['x'] - my_tank['x'])**2 + (closest['y'] - my_tank['y'])**2)
-        
-        # If too close, move away
+        closest = min(other_tanks, key=lambda t: t['distance'])
+        distance = closest['distance']
+
+        # If the enemy is too close, move away to maintain space
         if distance < 100:
             dx = my_tank['x'] - closest['x']
             dy = my_tank['y'] - closest['y']
             target_angle = math.degrees(math.atan2(dy, dx))
-            
+
             angle_diff = (target_angle - my_tank['angle']) % 360
             if angle_diff > 180:
                 angle_diff -= 360
-            
+
             action = {}
             if abs(angle_diff) > 5:
                 action['rotate'] = 1 if angle_diff > 0 else -1
             else:
                 action['move'] = 'forward'
-            
+
             return action
-    
-    # Default: move randomly
+
+    # Default behaviour: wander around the arena
     return {'move': 'forward', 'rotate': random.choice([-1, 0, 1])}
 ''',
         'aggressive_shooter': '''
 import math
 
+# A hyper-aggressive AI that fires continuously and rushes the nearest radar contact
+
 def think(game_state):
     my_tank = game_state['my_tank']
     other_tanks = game_state['other_tanks']
-    
-    action = {'shoot': True}  # Always try to shoot
-    
+
+    # Always be ready to shoot
+    action = {'shoot': True}
+
     if other_tanks:
-        # Find closest enemy
-        closest = min(other_tanks, key=lambda t: 
-            (t['x'] - my_tank['x'])**2 + (t['y'] - my_tank['y'])**2)
-        
+        # Find closest enemy by radar distance
+        closest = min(other_tanks, key=lambda t: t['distance'])
+
         # Calculate angle to enemy
         dx = closest['x'] - my_tank['x']
         dy = closest['y'] - my_tank['y']
         target_angle = math.degrees(math.atan2(dy, dx))
-        
+
         # Calculate angle difference
         angle_diff = (target_angle - my_tank['angle']) % 360
         if angle_diff > 180:
             angle_diff -= 360
-        
-        # Rotate towards enemy
+
+        # Rotate towards enemy or charge when aligned
         if abs(angle_diff) > 5:
             action['rotate'] = 1 if angle_diff > 0 else -1
         else:
             action['move'] = 'forward'
-    
+
     return action
 '''
     }
