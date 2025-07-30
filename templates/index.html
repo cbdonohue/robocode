@@ -182,6 +182,22 @@
             font-size: 0.9em;
         }
 
+        /* Battle log styles */
+        .log-section {
+            max-height: 200px;
+            overflow-y: auto;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 10px;
+            margin-top: 10px;
+        }
+
+        .log-entry {
+            font-size: 0.85em;
+            margin-bottom: 4px;
+            opacity: 0.9;
+        }
+
         .form-group {
             margin-bottom: 15px;
         }
@@ -410,6 +426,11 @@ def think(game_state):
                 <h4>🎖️ Active Tanks</h4>
                 <div id="tankItems"></div>
             </div>
+
+            <h3>📜 Battle Log</h3>
+            <div class="log-section" id="logSection">
+                <div id="logList"></div>
+            </div>
         </div>
     </div>
 
@@ -537,6 +558,7 @@ def think(game_state):
                 updateArena(gameState);
                 updateGameInfo(gameState);
                 updateTankList(gameState);
+                updateLog(gameState.logs || []);
                 
                 if (!gameState.game_running && gameState.round_number > 0) {
                     showGameOver(gameState);
@@ -661,6 +683,24 @@ def think(game_state):
                 
                 tankItems.appendChild(tankItem);
             });
+        }
+
+        // Update battle log panel
+        function updateLog(logs) {
+            const logList = document.getElementById('logList');
+            if (!logList) return;
+            logList.innerHTML = '';
+
+            logs.forEach(entry => {
+                const div = document.createElement('div');
+                div.className = 'log-entry';
+                const timeStr = new Date(entry.time * 1000).toLocaleTimeString();
+                div.textContent = `[${timeStr}] ${entry.message}`;
+                logList.appendChild(div);
+            });
+
+            // Auto-scroll to bottom
+            logList.scrollTop = logList.scrollHeight;
         }
 
         // Show game over
