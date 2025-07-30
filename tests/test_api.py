@@ -70,7 +70,11 @@ def test_add_tank_without_name(client):
     assert res.status_code == 200
     data = res.get_json()
     assert data["success"] is True
-    assert data["tank_name"].startswith("Tank_")
+    # Should use phonetic name instead of Tank_ prefix
+    assert data["tank_name"] in ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot", "Golf", "Hotel",
+                                "India", "Juliet", "Kilo", "Lima", "Mike", "November", "Oscar", "Papa",
+                                "Quebec", "Romeo", "Sierra", "Tango", "Uniform", "Victor", "Whiskey",
+                                "Xray", "Yankee", "Zulu"]
 
 
 def test_add_tank_without_color(client):
@@ -83,6 +87,30 @@ def test_add_tank_without_color(client):
     state = client.get("/api/game-state").get_json()
     tank = next(t for t in state["tanks"] if t["name"] == "TestTank")
     assert tank["color"].startswith("#")
+
+
+def test_phonetic_naming_sequence(client):
+    """Test that multiple tanks without names get sequential phonetic names"""
+    # Add first tank without name
+    res1 = client.post("/api/add-tank", json={"color": "#f00"})
+    assert res1.status_code == 200
+    data1 = res1.get_json()
+    assert data1["success"] is True
+    assert data1["tank_name"] == "Alpha"
+    
+    # Add second tank without name
+    res2 = client.post("/api/add-tank", json={"color": "#0f0"})
+    assert res2.status_code == 200
+    data2 = res2.get_json()
+    assert data2["success"] is True
+    assert data2["tank_name"] == "Bravo"
+    
+    # Add third tank without name
+    res3 = client.post("/api/add-tank", json={"color": "#00f"})
+    assert res3.status_code == 200
+    data3 = res3.get_json()
+    assert data3["success"] is True
+    assert data3["tank_name"] == "Charlie"
 
 
 def test_reset_game_endpoint(client):
