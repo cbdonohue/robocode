@@ -3,6 +3,7 @@ import random
 import math
 import time
 import threading
+import concurrent.futures  # For per-tank execution timeouts
 import importlib.util
 import os
 import sys
@@ -169,6 +170,18 @@ class GameState:
         # Battle log entries (list of dicts with 'time' and 'message')
         self.logs = []
 
+        # Thread pool for executing user brain code with timeouts
+        # Limiting concurrency prevents one slow brain from freezing the whole game loop.
+        self._executor = concurrent.futures.ThreadPoolExecutor(max_workers=8)
+        # Maximum wall-clock time (seconds) allowed for a single brain think() call per frame.
+        # Allow the timeout to be configured via env var BRAIN_THINK_TIMEOUT (seconds)
+        env_timeout = os.getenv("BRAIN_THINK_TIMEOUT")
+        try:
+            self.think_timeout = float(env_timeout) if env_timeout else 0.05  # default 50 ms
+        except ValueError:
+            # Fallback to default if env var is not a valid float
+            self.think_timeout = 0.05  # 50 ms
+ 
     def _log(self, message: str):
         """Append an entry to the battle log with a timestamp (keeps last 200)."""
         timestamp = time.time()
@@ -273,13 +286,9 @@ class GameState:
             # Call tank brain if available
             if tank.brain_module and hasattr(tank.brain_module, 'think'):
                 try:
-                    # Capture any output produced by the user's brain code for debugging purposes
-                    buf_out, buf_err = io.StringIO(), io.StringIO()
-                    with contextlib.redirect_stdout(buf_out), contextlib.redirect_stderr(buf_err):
-                        action = tank.brain_module.think(game_state)
-
-                    captured_out = buf_out.getvalue()
-                    captured_err = buf_err.getvalue()
+                    # Submit brain execution to thread pool with a timeout
+                    future = self._executor.submit(self._run_brain_think, tank, game_state)
+                    action, captured_out, captured_err = future.result(timeout=self.think_timeout)
 
                     if captured_out:
                         tank._add_debug_event('stdout', text=captured_out)
@@ -287,10 +296,21 @@ class GameState:
                         tank._add_debug_event('stderr', text=captured_err)
 
                     self._execute_tank_action(tank, action)
+                except concurrent.futures.TimeoutError:
+                    # Brain took too long – skip this frame and log timeout
+                    self._log(f"Tank {tank_name} brain timed out for this frame.")
+                    tank._add_debug_event('timeout', message='think() took too long')
                 except Exception as e:
                     error_msg = str(e)
                     print(f"Error in tank {tank_name} brain: {error_msg}")
                     tank._add_debug_event('error', error=error_msg)
+
+    def _run_brain_think(self, tank: Tank, state: dict):
+        """Helper executed in a worker thread to run user think() and capture stdout/stderr."""
+        buf_out, buf_err = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(buf_out), contextlib.redirect_stderr(buf_err):
+            action = tank.brain_module.think(state)
+        return action, buf_out.getvalue(), buf_err.getvalue()
     
     def _get_game_state_for_ai(self, tank_name: str) -> dict:
         """Get game state from perspective of specific tank"""
@@ -534,6 +554,7 @@ def start_game():
     # Validate and apply custom settings if provided
     max_rounds = data.get('max_rounds')
     round_time = data.get('round_time')
+    think_timeout = data.get('think_timeout')  # seconds
 
     try:
         if max_rounds is not None:
@@ -544,12 +565,16 @@ def start_game():
             round_time = int(round_time)
             if round_time > 0:
                 game_state.round_time = round_time
+        if think_timeout is not None:
+            think_timeout_val = float(think_timeout)
+            if think_timeout_val > 0:
+                game_state.think_timeout = think_timeout_val
     except ValueError:
         # Ignore invalid values and keep defaults
         pass
 
     game_state.start_game()
-    return jsonify({'success': True, 'max_rounds': game_state.max_rounds, 'round_time': game_state.round_time})
+    return jsonify({'success': True, 'max_rounds': game_state.max_rounds, 'round_time': game_state.round_time, 'think_timeout': game_state.think_timeout})
 
 @app.route('/api/reset-game', methods=['POST'])
 def reset_game():
