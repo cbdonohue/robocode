@@ -171,6 +171,9 @@ class GameState:
         # Update tanks (AI decisions)
         self._update_tanks()
         
+        # Check for tank-tank overlap and separate overlapping tanks
+        self._resolve_tank_collisions()
+        
         # Check collisions
         self._check_collisions()
         
@@ -344,6 +347,46 @@ class GameState:
             'round_time': self.round_time,
             'time_remaining': max(0, self.round_time - (time.time() - self.round_start_time))
         }
+
+    def _resolve_tank_collisions(self):
+        """Prevent tanks from overlapping by separating any that collide."""
+        # Create a list of alive tanks for easier iteration
+        alive_tanks = [t for t in self.tanks.values() if t.alive]
+        for i in range(len(alive_tanks)):
+            for j in range(i + 1, len(alive_tanks)):
+                t1 = alive_tanks[i]
+                t2 = alive_tanks[j]
+                dx = t2.x - t1.x
+                dy = t2.y - t1.y
+                distance = math.hypot(dx, dy)
+                min_dist = TANK_SIZE  # Tanks are considered circles with radius TANK_SIZE/2
+                if distance == 0:
+                    # If both tanks are exactly on top of each other, nudge them apart slightly
+                    angle = random.uniform(0, 2 * math.pi)
+                    dx = math.cos(angle) * 0.1
+                    dy = math.sin(angle) * 0.1
+                    t1.x -= dx
+                    t1.y -= dy
+                    t2.x += dx
+                    t2.y += dy
+                    continue
+                if distance < min_dist:
+                    # Amount we need to separate the tanks so they just touch
+                    overlap = min_dist - distance
+                    # Normalised vector between the tanks
+                    nx = dx / distance
+                    ny = dy / distance
+                    # Push each tank half the overlap distance in opposite directions
+                    shift_x = nx * overlap / 2
+                    shift_y = ny * overlap / 2
+                    t1.x -= shift_x
+                    t1.y -= shift_y
+                    t2.x += shift_x
+                    t2.y += shift_y
+                    # Ensure tanks stay within arena bounds
+                    for t in (t1, t2):
+                        t.x = min(max(t.x, TANK_SIZE / 2), ARENA_WIDTH - TANK_SIZE / 2)
+                        t.y = min(max(t.y, TANK_SIZE / 2), ARENA_HEIGHT - TANK_SIZE / 2)
 
 # Global game state
 game_state = GameState()
