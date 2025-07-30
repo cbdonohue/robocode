@@ -539,7 +539,11 @@ def add_tank():
         name = _next_phonetic_name(game_state.tanks.keys())
     color = data.get('color', f'#{random.randint(0, 0xFFFFFF):06x}')
     brain_code = data.get('brain_code')
-    
+
+    # Prevent adding a tank without any brain code (empty or whitespace-only)
+    if not brain_code or not str(brain_code).strip():
+        return jsonify({'error': 'Tank brain code cannot be empty'}), 400
+
     game_state.add_tank(name, color, brain_code)
     return jsonify({'success': True, 'tank_name': name})
 

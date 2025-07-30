@@ -596,6 +596,12 @@ def think(game_state):
             const color = document.getElementById('tankColor').value;
             const brainCode = document.getElementById('brainCode').value;
 
+            // Basic validation: ensure brain code is not empty/whitespace only
+            if (!brainCode.trim()) {
+                alert('Please enter brain code before adding a tank.');
+                return;
+            }
+
             try {
                 const response = await fetch('/api/add-tank', {
                     method: 'POST',
@@ -615,6 +621,8 @@ def think(game_state):
                     updateTankList();
                     document.getElementById('tankName').value = '';
                     document.getElementById('brainCode').value = '';
+                } else {
+                    alert(result.error || 'Failed to add tank');
                 }
             } catch (error) {
                 console.error('Error adding tank:', error);
