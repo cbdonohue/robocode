@@ -167,9 +167,9 @@ def think(game_state):
 
 - **Backend**: Python Flask with real-time game loop
 - **Frontend**: HTML5, CSS3, JavaScript with modern UI
-- **AI Execution**: Safe Python code execution with error handling
+- **AI Execution**: Safe Python code execution with error handling and configurable timeouts
 - **Real-time Updates**: 60 FPS game loop with 20 FPS display updates
-- **Multi-threading**: Background game processing
+- **Multi-threading**: Background game processing with per-tank execution timeouts
 
 ## 📁 File Structure
 
@@ -184,6 +184,13 @@ tank-battle-arena/
 ```
 
 ## 🚀 Advanced Features
+
+### Configurable Brain Timeouts
+Prevent slow AI code from freezing the game:
+- **Environment Variable**: Set `BRAIN_THINK_TIMEOUT=0.1` for 100ms timeout
+- **API Configuration**: Pass `think_timeout` parameter when starting games
+- **Default**: 50ms timeout prevents one slow brain from affecting others
+- **Safety**: Timeouts are logged and don't crash the game
 
 ### Custom AI Strategies
 Create sophisticated tank behaviors:
@@ -206,6 +213,7 @@ You can easily modify:
 - **Game Speed**: Adjust `TANK_SPEED`, `BULLET_SPEED`, etc.
 - **Scoring**: Modify point values in the collision detection
 - **Round Settings**: Change `max_rounds` and `round_time`
+- **Brain Timeout**: Configure per-tank execution time limit via environment variable `BRAIN_THINK_TIMEOUT` or API parameter `think_timeout`
 - **Visual Effects**: Update CSS for different themes
 
 ## 🐛 Troubleshooting
