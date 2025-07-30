@@ -107,14 +107,15 @@
 
         .tank-turret {
             position: absolute;
-            top: 0;
+            top: 50%;
             left: 50%;
-            width: 4px;
-            height: 12px;
+            width: 14px;  /* length of barrel */
+            height: 4px;   /* thickness of barrel */
             background: inherit;
             border: 2px solid rgba(0, 0, 0, 0.3);
             border-radius: 2px;
-            transform: translate(-50%, -50%);
+            transform: translate(0, -50%); /* align left edge at center */
+            transform-origin: left center;  /* rotate around back of barrel */
         }
 
         .bullet {
