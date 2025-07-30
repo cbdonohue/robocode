@@ -11,7 +11,7 @@ import json
 
 app = Flask(__name__)
 
-# Game configuration
+# Arena configuration
 ARENA_WIDTH = 800
 ARENA_HEIGHT = 600
 TANK_SIZE = 20
@@ -21,6 +21,9 @@ TANK_SPEED = 2
 ROTATION_SPEED = 3
 MAX_HEALTH = 100
 DAMAGE_PER_HIT = 25
+
+# Radar configuration (maximum distance a tank can detect enemies)
+RADAR_RANGE = 250  # units
 
 class Tank:
     def __init__(self, x: float, y: float, color: str, name: str, brain_module=None):
@@ -230,15 +233,23 @@ class GameState:
         """Get game state from perspective of specific tank"""
         tank = self.tanks[tank_name]
         
-        # Get other tanks
+        # Radar sweep – detect enemy tanks within RADAR_RANGE
         other_tanks = []
         for name, other_tank in self.tanks.items():
-            if name != tank_name and other_tank.alive:
+            if name == tank_name or not other_tank.alive:
+                continue
+
+            # Distance between my tank and the other tank
+            distance = math.sqrt((other_tank.x - tank.x) ** 2 + (other_tank.y - tank.y) ** 2)
+
+            # Only report tanks that are inside radar range
+            if distance <= RADAR_RANGE:
                 other_tanks.append({
                     'x': other_tank.x,
                     'y': other_tank.y,
                     'angle': other_tank.angle,
-                    'name': other_tank.name
+                    'name': other_tank.name,
+                    'distance': distance  # Helpful for AI logic
                 })
         
         return {
