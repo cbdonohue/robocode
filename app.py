@@ -187,7 +187,14 @@ class GameState:
         # Check collisions
         self._check_collisions()
         
-        # Check if round should end
+        # NEW: End round early if only one (or zero) tanks remain alive
+        alive_tanks_count = sum(1 for t in self.tanks.values() if t.alive)
+        if alive_tanks_count <= 1:
+            self._log("Only one tank remaining. Ending round early.")
+            self._end_round()
+            return
+        
+        # Check if round should end due to time limit
         if time.time() - self.round_start_time > self.round_time:
             self._end_round()
     
