@@ -121,7 +121,16 @@ class GameState:
         self.max_rounds = 10
         self.round_time = 60  # seconds
         self.round_start_time = 0
-        
+        # Battle log entries (list of dicts with 'time' and 'message')
+        self.logs = []
+
+    def _log(self, message: str):
+        """Append an entry to the battle log with a timestamp (keeps last 200)."""
+        timestamp = time.time()
+        self.logs.append({'time': timestamp, 'message': message})
+        if len(self.logs) > 200:
+            self.logs.pop(0)
+    
     def add_tank(self, name: str, color: str, brain_code: str = None):
         """Add a tank to the game"""
         # Generate random starting position
@@ -134,6 +143,7 @@ class GameState:
         
         tank = Tank(x, y, color, name, brain_module)
         self.tanks[name] = tank
+        self._log(f"Tank {name} deployed.")
     
     def _compile_brain(self, tank_name: str, brain_code: str):
         """Compile tank brain code into a module"""
@@ -282,6 +292,7 @@ class GameState:
                 if distance <= TANK_SIZE/2:
                     # Tank hit!
                     tank.take_damage(DAMAGE_PER_HIT)
+                    self._log(f"{bullet['owner']} hit {tank_name}. Health: {tank.health}")
                     
                     # Award points to shooter
                     if bullet['owner'] in self.tanks:
@@ -291,6 +302,7 @@ class GameState:
                         if not tank.alive:
                             shooter.kills += 1
                             shooter.score += 50  # Bonus for kill
+                            self._log(f"{tank_name} was destroyed by {bullet['owner']}.")
                     
                     # Remove bullet
                     self.bullets.remove(bullet)
@@ -299,9 +311,11 @@ class GameState:
     def _end_round(self):
         """End current round and start new one"""
         self.round_number += 1
+        self._log(f"Round {self.round_number} completed.")
         
         if self.round_number >= self.max_rounds:
             self.game_running = False
+            self._log("Battle finished!")
             return
         
         # Reset tanks for new round
@@ -324,6 +338,7 @@ class GameState:
         self.game_running = True
         self.round_number = 1
         self.round_start_time = time.time()
+        self._log("Battle started!")
         
         # Reset all tanks
         for tank in self.tanks.values():
@@ -345,7 +360,8 @@ class GameState:
             'round_number': self.round_number,
             'max_rounds': self.max_rounds,
             'round_time': self.round_time,
-            'time_remaining': max(0, self.round_time - (time.time() - self.round_start_time))
+            'time_remaining': max(0, self.round_time - (time.time() - self.round_start_time)),
+            'logs': self.logs[-100:]
         }
 
     def _resolve_tank_collisions(self):
