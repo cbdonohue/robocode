@@ -317,13 +317,17 @@ class GameState:
     
     def _end_round(self):
         """End current round and start new one"""
-        self.round_number += 1
+        # Log completion of the round that just finished
         self._log(f"Round {self.round_number} completed.")
-        
+
+        # If we've just finished the final round, end the battle
         if self.round_number >= self.max_rounds:
             self.game_running = False
             self._log("Battle finished!")
             return
+
+        # Increment round counter for the next round
+        self.round_number += 1
         
         # Reset tanks for new round
         for tank in self.tanks.values():
