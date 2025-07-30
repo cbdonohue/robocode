@@ -504,6 +504,11 @@
         <div class="control-section">
             <h3>🎯 Tank Management</h3>
             
+            <div class="tank-list" id="tankList">
+                <h4>🎖️ Active Tanks</h4>
+                <div id="tankItems"></div>
+            </div>
+            
             <div class="form-group">
                 <label for="tankName">Tank Name:</label>
                 <input type="text" id="tankName" placeholder="Enter tank name">
@@ -541,11 +546,6 @@ def think(game_state):
                     <h4>Aggressive Shooter</h4>
                     <p>Always shoots and moves towards enemies</p>
                 </div>
-            </div>
-
-            <div class="tank-list" id="tankList">
-                <h4>🎖️ Active Tanks</h4>
-                <div id="tankItems"></div>
             </div>
         </div>
     </div>
@@ -806,7 +806,16 @@ def think(game_state):
                 return;
             }
             
-            gameState.tanks.forEach(tank => {
+            // Sort tanks: alive tanks first, then dead tanks
+            const sortedTanks = gameState.tanks.sort((a, b) => {
+                // First sort by alive status (alive tanks first)
+                if (a.alive && !b.alive) return -1;
+                if (!a.alive && b.alive) return 1;
+                // If both have same alive status, sort by score (higher first)
+                return b.score - a.score;
+            });
+            
+            sortedTanks.forEach(tank => {
                 const tankItem = document.createElement('div');
                 tankItem.className = `tank-item ${tank.alive ? 'alive' : 'dead'}`;
                 
