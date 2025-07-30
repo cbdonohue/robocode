@@ -125,6 +125,7 @@ class Tank:
         self._add_debug_event('damage', new_health=self.health, damage=damage)
         if self.health <= 0:
             self.alive = False
+            self.health = 0
             self._add_debug_event('destroyed')
     
     def get_state(self) -> dict:
