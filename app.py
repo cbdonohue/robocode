@@ -24,6 +24,8 @@ ROTATION_SPEED = 3
 MAX_HEALTH = 100
 DAMAGE_PER_HIT = 25
 DEBUG_LOG_LIMIT = 200  # Max debug events to keep per tank
+# New: Adjustable game speed multiplier (1.0 = normal speed)
+GAME_SPEED = 1.0
 
 # List of safe phonetic names for default tank names
 PHONETIC_NAMES = [
@@ -249,8 +251,8 @@ class GameState:
         
         for bullet in self.bullets:
             # Update position
-            bullet['x'] += bullet['dx']
-            bullet['y'] += bullet['dy']
+            bullet['x'] += bullet['dx'] * GAME_SPEED  # Apply game speed multiplier
+            bullet['y'] += bullet['dy'] * GAME_SPEED  # Apply game speed multiplier
             bullet['lifetime'] += 1
             
             # Remove bullets that are out of bounds or too old
@@ -326,18 +328,18 @@ class GameState:
             move = action['move']
             if move == 'forward':
                 angle_rad = math.radians(tank.angle)
-                dx = math.cos(angle_rad) * TANK_SPEED
-                dy = math.sin(angle_rad) * TANK_SPEED
+                dx = math.cos(angle_rad) * TANK_SPEED * GAME_SPEED  # Apply speed multiplier
+                dy = math.sin(angle_rad) * TANK_SPEED * GAME_SPEED  # Apply speed multiplier
                 tank.move(dx, dy)
             elif move == 'backward':
                 angle_rad = math.radians(tank.angle)
-                dx = -math.cos(angle_rad) * TANK_SPEED
-                dy = -math.sin(angle_rad) * TANK_SPEED
+                dx = -math.cos(angle_rad) * TANK_SPEED * GAME_SPEED  # Apply speed multiplier
+                dy = -math.sin(angle_rad) * TANK_SPEED * GAME_SPEED  # Apply speed multiplier
                 tank.move(dx, dy)
         
         # Rotation
         if 'rotate' in action:
-            tank.rotate(action['rotate'] * ROTATION_SPEED)
+            tank.rotate(action['rotate'] * ROTATION_SPEED * GAME_SPEED)  # Apply speed multiplier
         
         # Shooting
         if action.get('shoot', False):
@@ -439,6 +441,7 @@ class GameState:
             'max_rounds': self.max_rounds,
             'round_time': self.round_time,
             'time_remaining': max(0, self.round_time - (time.time() - self.round_start_time)),
+            'game_speed': GAME_SPEED,  # Expose current game speed to frontend/API
             'logs': self.logs[-100:]
         }
 
@@ -534,6 +537,7 @@ def start_game():
     # Validate and apply custom settings if provided
     max_rounds = data.get('max_rounds')
     round_time = data.get('round_time')
+    game_speed_param = data.get('game_speed')  # New optional parameter
 
     try:
         if max_rounds is not None:
@@ -544,12 +548,20 @@ def start_game():
             round_time = int(round_time)
             if round_time > 0:
                 game_state.round_time = round_time
+        if game_speed_param is not None:
+            try:
+                speed_val = float(game_speed_param)
+                if speed_val > 0:
+                    global GAME_SPEED
+                    GAME_SPEED = speed_val
+            except ValueError:
+                pass  # Ignore invalid values
     except ValueError:
         # Ignore invalid values and keep defaults
         pass
 
     game_state.start_game()
-    return jsonify({'success': True, 'max_rounds': game_state.max_rounds, 'round_time': game_state.round_time})
+    return jsonify({'success': True, 'max_rounds': game_state.max_rounds, 'round_time': game_state.round_time, 'game_speed': GAME_SPEED})
 
 @app.route('/api/reset-game', methods=['POST'])
 def reset_game():
@@ -701,6 +713,20 @@ def think(game_state):
 def get_debug_data():
     """Return recent debug logs for all tanks (capped)"""
     return jsonify({name: tank.debug_log[-100:] for name, tank in game_state.tanks.items()})
+
+@app.route('/api/set-game-speed', methods=['POST'])
+def set_game_speed():
+    """Set the global game speed multiplier."""
+    data = request.get_json(silent=True) or {}
+    try:
+        speed = float(data.get('game_speed', 1.0))
+        if speed <= 0:
+            raise ValueError()
+        global GAME_SPEED
+        GAME_SPEED = speed
+        return jsonify({'success': True, 'game_speed': GAME_SPEED})
+    except (TypeError, ValueError):
+        return jsonify({'success': False, 'error': 'Invalid game_speed value'}), 400
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000) 
