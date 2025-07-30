@@ -372,6 +372,7 @@ class GameState:
             'max_rounds': self.max_rounds,
             'round_time': self.round_time,
             'time_remaining': max(0, self.round_time - (time.time() - self.round_start_time)),
+            'radar_range': RADAR_RANGE,
             'logs': self.logs[-100:]
         }
 

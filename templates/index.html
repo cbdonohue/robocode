@@ -80,6 +80,15 @@
             transition: all 0.1s ease;
         }
 
+        /* Radar visualization around each tank */
+        .radar {
+            position: absolute;
+            border: 1px dashed rgba(255, 255, 255, 0.25);
+            border-radius: 50%;
+            pointer-events: none; /* Allow clicks to pass through */
+            transform: translate(-50%, -50%);
+        }
+
         .tank-body {
             width: 100%;
             height: 100%;
@@ -581,11 +590,22 @@ def think(game_state):
             loadingMessage.style.display = 'none';
             
             // Clear arena
-            const existingElements = arena.querySelectorAll('.tank, .bullet, .health-bar, .tank-name');
+            const existingElements = arena.querySelectorAll('.tank, .bullet, .health-bar, .tank-name, .radar');
             existingElements.forEach(el => el.remove());
             
             // Draw tanks
             gameState.tanks.forEach(tank => {
+                // Radar (range indicator)
+                const radarElement = document.createElement('div');
+                const radarRange = gameState.radar_range || 250;
+                radarElement.className = 'radar';
+                radarElement.style.width = radarRange * 2 + 'px';
+                radarElement.style.height = radarRange * 2 + 'px';
+                radarElement.style.left = tank.x + 'px';
+                radarElement.style.top = tank.y + 'px';
+
+                arena.appendChild(radarElement);
+
                 const tankElement = document.createElement('div');
                 tankElement.className = `tank ${tank.alive ? 'alive' : 'dead'}`;
                 tankElement.style.left = tank.x + 'px';
