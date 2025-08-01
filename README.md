@@ -1,6 +1,6 @@
 # 🤖 Tank Battle Arena
 
-A competitive tank battle arena where programmers write Python code to control their tanks! Watch AI-driven tanks battle it out in real-time with custom strategies and tactics.
+A competitive tank battle arena where programmers write Python code to control their tanks! Watch Code-driven tanks battle it out in real-time with custom strategies and tactics.
 
 [video.mp4](https://github.com/user-attachments/assets/641ff54d-9aaf-4c52-9362-3c62504665b0)
 
@@ -10,7 +10,7 @@ A competitive tank battle arena where programmers write Python code to control t
 - **Real-time Battles**: Watch tanks battle in a dynamic arena
 - **Multiple Rounds**: 10 rounds of intense combat
 - **Scoring System**: Points for hits, kills, and survival
-- **Sample Brains**: Pre-built AI examples to get started
+- **Sample Brains**: Pre-built code examples to get started
 - **Beautiful UI**: Modern interface with real-time visualization
 - **Health System**: Tanks have health and can be destroyed
 - **Bullet Physics**: Realistic projectile movement and collision detection
@@ -25,7 +25,7 @@ def think(game_state):
     other_tanks = game_state['other_tanks']
     bullets = game_state['bullets']
     
-    # Your AI logic here
+    # Your logic here
     return {
         'move': 'forward',      # 'forward', 'backward', or None
         'rotate': 1,           # -1 (left), 0, or 1 (right)
@@ -78,13 +78,13 @@ def think(game_state):
 
 ## 🎯 How to Play
 
-1. **Add Tanks**: Create tanks with custom names, colors, and AI brains
-2. **Write AI Code**: Program your tank's behavior using Python
+1. **Add Tanks**: Create tanks with custom names, colors, and code brains
+2. **Write Code**: Program your tank's behavior using Python
 3. **Start Battle**: Begin the arena battle with at least 2 tanks
 4. **Watch & Learn**: Observe how different strategies perform
 5. **Iterate**: Modify your tank's brain and try again!
 
-## 🧠 Sample AI Strategies
+## 🧠 Sample Code Strategies
 
 ### Simple Chaser
 ```python
@@ -167,7 +167,7 @@ def think(game_state):
 
 - **Backend**: Python Flask with real-time game loop
 - **Frontend**: HTML5, CSS3, JavaScript with modern UI
-- **AI Execution**: Safe Python code execution with error handling and configurable timeouts
+- **Execution**: Safe Python code execution with error handling and configurable timeouts
 - **Real-time Updates**: 60 FPS game loop with 20 FPS display updates
 - **Multi-threading**: Background game processing with per-tank execution timeouts
 
@@ -186,13 +186,13 @@ tank-battle-arena/
 ## 🚀 Advanced Features
 
 ### Configurable Brain Timeouts
-Prevent slow AI code from freezing the game:
+Prevent slow code from freezing the game:
 - **Environment Variable**: Set `BRAIN_THINK_TIMEOUT=0.1` for 100ms timeout
 - **API Configuration**: Pass `think_timeout` parameter when starting games
 - **Default**: 50ms timeout prevents one slow brain from affecting others
 - **Safety**: Timeouts are logged and don't crash the game
 
-### Custom AI Strategies
+### Custom Strategies
 Create sophisticated tank behaviors:
 - **Predictive Shooting**: Lead moving targets
 - **Formation Tactics**: Coordinate with multiple tanks
@@ -226,7 +226,7 @@ You can easily modify:
 ## 🤝 Contributing
 
 Feel free to contribute:
-- New sample AI strategies
+- New sample strategies
 - UI improvements
 - Game mechanics enhancements
 - Bug fixes and optimizations
