@@ -2,7 +2,7 @@
 
 A competitive tank battle arena where programmers write Python code to control their tanks! Watch AI-driven tanks battle it out in real-time with custom strategies and tactics.
 
-[![](thumbnail.png)](video.mp4)
+[video.mp4](https://github.com/user-attachments/assets/641ff54d-9aaf-4c52-9362-3c62504665b0)
 
 ## 🎮 Game Features
 
