@@ -140,6 +140,18 @@
             box-shadow: 0 0 10px #f39c12;
         }
 
+        /* Radar sweep line */
+        .radar-line {
+            position: absolute;
+            width: 2px;
+            height: 120px; /* default, will be updated in JS */
+            background: var(--retro-accent);
+            opacity: 0.8;
+            transform-origin: bottom center;
+            pointer-events: none; /* allow clicks through */
+            box-shadow: 0 0 8px var(--retro-accent);
+        }
+
         .health-bar {
             position: absolute;
             width: 40px;
@@ -566,6 +578,7 @@ def think(game_state):
     <script>
         let gameInterval;
         let sampleBrains = {};
+        let radarAngle = 0; // Angle of the radar sweep in degrees
 
         // Initialize
         window.addEventListener('load', function() {
@@ -717,7 +730,7 @@ def think(game_state):
             loadingMessage.style.display = 'none';
             
             // Clear arena
-            const existingElements = arena.querySelectorAll('.tank, .bullet, .health-bar, .tank-name');
+            const existingElements = arena.querySelectorAll('.tank, .bullet, .health-bar, .tank-name, .radar-line');
             existingElements.forEach(el => el.remove());
             
             // Draw tanks
@@ -771,6 +784,20 @@ def think(game_state):
                 bulletElement.style.top = (bullet.y - 2) + 'px';
                 arena.appendChild(bulletElement);
             });
+
+            // === Radar sweep ===
+            radarAngle = (radarAngle + 2) % 360; // advance sweep
+            const userTank = gameState.tanks.length > 0 ? gameState.tanks[0] : null;
+            if (userTank && userTank.alive) {
+                const radius = 120; // pixels
+                const radarLine = document.createElement('div');
+                radarLine.className = 'radar-line';
+                radarLine.style.height = radius + 'px';
+                radarLine.style.left = userTank.x + 'px';
+                radarLine.style.top = (userTank.y - radius) + 'px';
+                radarLine.style.transform = `translateX(-50%) rotate(${radarAngle}deg)`;
+                arena.appendChild(radarLine);
+            }
         }
 
         // Update game info
