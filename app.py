@@ -717,6 +717,78 @@ def think(game_state):
         print("Aggressive: No enemies visible, but still shooting!")
     
     return action
+''',
+        'chatgpt_pilot': '''
+import math
+import json
+import time
+import os
+
+try:
+    import openai
+except ImportError:
+    openai = None  # Library not installed; bot will fall back to simple behaviour
+
+# Read the API key from environment variable (set this before running!)
+OPENAI_KEY = os.getenv('OPENAI_API_KEY')
+if openai and OPENAI_KEY:
+    openai.api_key = OPENAI_KEY
+
+# Cache ChatGPT decisions to avoid expensive calls every frame
+_LAST_CALL = 0
+_CACHE = {'move': 'forward', 'rotate': 0, 'shoot': False}
+
+def _format_prompt(gs):
+    """Convert trimmed game state into a prompt for ChatGPT."""
+    prompt = {
+        'my_tank': gs['my_tank'],
+        'other_tanks': gs['other_tanks'][:3],  # limit info
+        'bullets': gs['bullets'][:5]           # limit info
+    }
+    return (
+        "You are controlling a tank in a 2-D battle arena.\n"
+        "Given the current JSON state, decide the next action.\n"
+        "Respond ONLY with a JSON object containing exactly the keys move (null|'forward'|'backward'), rotate (-1|0|1), shoot (true|false).\n"
+        "State:\n" + json.dumps(prompt)
+    )
+
+def think(game_state):
+    global _LAST_CALL, _CACHE
+
+    # If no OpenAI key or library, fall back to simple behaviour
+    if not (openai and OPENAI_KEY):
+        return {'move': 'forward', 'rotate': 0, 'shoot': False}
+
+    # Throttle to 1 call per second
+    now = time.time()
+    if now - _LAST_CALL < 1:
+        return _CACHE
+
+    prompt = _format_prompt(game_state)
+    try:
+        resp = openai.ChatCompletion.create(
+            model='gpt-3.5-turbo',
+            messages=[
+                {'role': 'system', 'content': 'You are an expert tank strategist.'},
+                {'role': 'user', 'content': prompt}
+            ],
+            max_tokens=30,
+            temperature=0.2,
+        )
+        reply = resp.choices[0].message['content']
+        action = json.loads(reply)
+        # Minimal validation with defaults
+        move = action.get('move') if action.get('move') in ['forward', 'backward', None] else None
+        rotate = action.get('rotate') if action.get('rotate') in [-1, 0, 1] else 0
+        shoot = bool(action.get('shoot'))
+        _CACHE = {'move': move, 'rotate': rotate, 'shoot': shoot}
+        _LAST_CALL = now
+        return _CACHE
+    except Exception:
+        # On any error (rate limit/parse), move forward to stay alive
+        _CACHE = {'move': 'forward', 'rotate': 0, 'shoot': False}
+        _LAST_CALL = now
+        return _CACHE
 '''
     }
     
