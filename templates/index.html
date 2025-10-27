@@ -166,6 +166,18 @@
             z-index: 50; /* ensure on top */
         }
 
+        .tank-taunt {
+            position: absolute;
+            font-size: 10px;
+            font-weight: bold;
+            background: rgba(0,0,0,0.6);
+            padding: 2px 4px;
+            border-radius: 4px;
+            transform: translateX(-50%);
+            white-space: nowrap;
+            z-index: 60;
+        }
+
         .game-info {
             display: flex;
             justify-content: space-between;
@@ -717,7 +729,7 @@ def think(game_state):
             loadingMessage.style.display = 'none';
             
             // Clear arena
-            const existingElements = arena.querySelectorAll('.tank, .bullet, .health-bar, .tank-name');
+            const existingElements = arena.querySelectorAll('.tank, .bullet, .health-bar, .tank-name, .tank-taunt');
             existingElements.forEach(el => el.remove());
             
             // Draw tanks
@@ -761,6 +773,16 @@ def think(game_state):
                 
                 arena.appendChild(healthBar);
                 arena.appendChild(tankName);
+
+                // Taunt (if any)
+                if (tank.taunt) {
+                    const tauntDiv = document.createElement('div');
+                    tauntDiv.className = 'tank-taunt';
+                    tauntDiv.textContent = tank.taunt;
+                    tauntDiv.style.left = tank.x + 'px';
+                    tauntDiv.style.top = (tank.y - 55) + 'px';
+                    arena.appendChild(tauntDiv);
+                }
             });
             
             // Draw bullets
