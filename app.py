@@ -717,7 +717,54 @@ def think(game_state):
         print("Aggressive: No enemies visible, but still shooting!")
     
     return action
-'''
+''',
+        'chatgpt_bot': '''
+import json, math, random, os, time
+try:
+    import openai
+except ImportError:
+    openai = None
+
+SYSTEM_PROMPT = """You are an expert tank commander in a Python battle simulation.\nGiven the JSON game state you receive, respond ONLY with a JSON object describing your next action.\nAllowed keys:\n  move: \"forward\", \"backward\", or null\n  rotate: -1, 0, or 1\n  shoot: true or false\nReturn ONLY the JSON object, without comments or extra text."""
+
+def think(game_state):
+    # Emit a heartbeat for debug visibility
+    print(f"ChatGPT Bot tick @ {time.time():.2f}")
+
+    # Fallback strategy if OpenAI is not available or key is missing
+    if openai is None or not os.getenv("OPENAI_API_KEY"):
+        print("ChatGPT Bot: OpenAI unavailable – using fallback logic")
+        return {
+            'move': 'forward',
+            'rotate': random.choice([-1, 0, 1]),
+            'shoot': random.random() < 0.3
+        }
+
+    try:
+        messages = [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": json.dumps(game_state)}
+        ]
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=messages,
+            temperature=0.2,
+            max_tokens=50
+        )
+        content = response.choices[0].message["content"].strip()
+        print("ChatGPT Bot raw LLM output:", content)
+        action = json.loads(content)
+        if not isinstance(action, dict):
+            raise ValueError("LLM response is not a JSON object")
+        return action
+    except Exception as e:
+        print("ChatGPT Bot error:", e)
+        # Graceful degradation
+        return {
+            'move': 'forward',
+            'rotate': random.choice([-1, 0, 1])
+        }
+''',
     }
     
     return jsonify(samples)
